@@ -1,8 +1,8 @@
 #####################################################################################
 #################################FCMapper###########################################
 #####################################################################################
-#Draft 1
-#Dec 15, 2014
+#Draft 1.1
+#Feb 10, 2016
 #Shaun Turney
 
 
@@ -53,7 +53,7 @@ matrix.indices = function(matrix) {
   Transmitters = length(which(colSums(abs(matrix))==0 & rowSums(abs(matrix))!=0))  
   Receivers  = length(which(rowSums(abs(matrix))==0 & colSums(abs(matrix))!=0))
   NoConnection  = length(which(rowSums(abs(matrix))==0 & colSums(abs(matrix))==0))
-  Ordinary	= Concepts - Transmitters - Receivers - NoConnection
+  Ordinary  = Concepts - Transmitters - Receivers - NoConnection
   SelfLoops	= 0
   for (i in 1:Concepts) {
     if (matrix[i,i] != 0) { SelfLoops = SelfLoops + 1 }
@@ -61,7 +61,7 @@ matrix.indices = function(matrix) {
   Connectionspervariable = Connections/length(matrix[1,])
   Complexity = Receivers/Transmitters
   Outdegree = rowSums(abs(matrix))
-  Hierarchy = (var(Outdegree)) * 12/(length(matrix[1,])*(length(matrix[1,])+1)*(length(matrix[1,])+1))
+  Hierarchy = (stats::var(Outdegree)) * 12/(length(matrix[1,])*(length(matrix[1,])+1)*(length(matrix[1,])+1))
   
   Value = c(Connections,Density,Concepts,Transmitters,Receivers,NoConnection,Ordinary,SelfLoops,
             Connectionspervariable,Complexity,Hierarchy)
@@ -115,7 +115,7 @@ nochanges.scenario = function (matrix,concept.names,iter) {
   
   
   for (i in 2:iter) { #Apply function iteratively
-    act_vector[i,] = 1/(1+exp(-1*(act_vector[i-1,] %*% matrix)))
+    act_vector[i,] = 1/(1+exp(-1*(act_vector[i-1,] + (act_vector[i-1,] %*% matrix))))
   }
   
   #check that convergence is reached
@@ -129,11 +129,11 @@ nochanges.scenario = function (matrix,concept.names,iter) {
   
   
   #plot change in concept values over time
-  plot(act_vector[,1]~seq(1,iter,1),type="n",ylim=c(0,1),xlab="Iteration",ylab="Value")
+  graphics::plot(act_vector[,1]~seq(1,iter,1),type="n",ylim=c(0,1),xlab="Iteration",ylab="Value")
   for (n in 1:length(matrix[1,])) {
-    points(act_vector[,n]~seq(1,iter,1),type="l",col=n)
+    graphics::points(act_vector[,n]~seq(1,iter,1),type="l",col=n)
   }
-  legend("topright",legend=concept.names,col=seq(1,n,1),lty=1)
+  graphics::legend("topright",legend=concept.names,col=seq(1,n,1),lty=1)
   
   return (results)
 }
@@ -152,7 +152,7 @@ changes.scenario = function (matrix,concept.names,iter,set.concepts,set.values) 
   
   
   for (i in 2:iter) {
-    act_vector[i,] = 1/(1+exp(-1*(act_vector[i-1,] %*% matrix)))
+    act_vector[i,] = 1/(1+exp(-1*(act_vector[i-1,] + (act_vector[i-1,] %*% matrix))))
     act_vector[i,which(concept.names %in% set.concepts == TRUE)] = set.values
   }
   
@@ -168,11 +168,11 @@ changes.scenario = function (matrix,concept.names,iter,set.concepts,set.values) 
   
   
   #plot
-  plot(act_vector[,1]~seq(1,iter,1),type="n",ylim=c(0,1),xlab="Iteration",ylab="Value")
+  graphics::plot(act_vector[,1]~seq(1,iter,1),type="n",ylim=c(0,1),xlab="Iteration",ylab="Value")
   for (n in 1:length(matrix[1,])) {
-    points(act_vector[,n]~seq(1,iter,1),type="l",col=n)
+    graphics::points(act_vector[,n]~seq(1,iter,1),type="l",col=n)
   }
-  legend("topright",legend=concept.names,col=seq(1,n,1),lty=1)
+  graphics::legend("topright",legend=concept.names,col=seq(1,n,1),lty=1)
   
   return (results)
 }
@@ -241,15 +241,15 @@ comp.maps = function (concept.names1,concept.names2) {
 
 graph.fcm = function (matrix,concept.sizes,concept.names) {
   
-  matrix.plot = graph.adjacency(matrix,mode="directed",weighted=T) #put into format igraph can read
+  matrix.plot = igraph::graph.adjacency(matrix,mode="directed",weighted=T) #put into format igraph can read
   
-  V(matrix.plot)$size = concept.sizes * 40
+  igraph::V(matrix.plot)$size = concept.sizes * 40
   
   
-  E(matrix.plot)$color = ifelse(E(matrix.plot)$weight<0,"red","black")
-  edge.labels = ifelse(E(matrix.plot)$weight<0,"-","+")
+  igraph::E(matrix.plot)$color = ifelse(igraph::E(matrix.plot)$weight<0,"red","black")
+  edge.labels = ifelse(igraph::E(matrix.plot)$weight<0,"-","+")
   
-  edge.curved = rep(0,length(E(matrix.plot))) #should the arrows be curved (yes, if arrows are in both directions)
+  edge.curved = rep(0,length(igraph::E(matrix.plot))) #should the arrows be curved (yes, if arrows are in both directions)
   i=1
   for (x in 1:length(matrix[1,])) {
     for (y in 1:length(matrix[1,])) {
@@ -262,7 +262,7 @@ graph.fcm = function (matrix,concept.sizes,concept.names) {
     }
   }
   
-  tkplot(matrix.plot,edge.width=abs(E(matrix.plot)$weight*5), vertex.color="grey",
+  igraph::tkplot(matrix.plot,edge.width=abs(igraph::E(matrix.plot)$weight*5), vertex.color="grey",
          vertex.label.color="blue",vertex.label=concept.names,vertex.label.dist=0,
          edge.curved=edge.curved)
   
@@ -321,6 +321,5 @@ combine.maps = function(matrix1,matrix2,concept.names1,concept.names2) {
   
   return(matrix.agg)
 }
-
 
 
